@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animasi Partikel - Sensor Kamera</title>
+
+  <!-- Library MediaPipe untuk Gesture Control via Kamera -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0d0d11;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    canvas#canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    /* Preview Kamera Kecil di Pojok Kanan Atas */
+    #webcam-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+      width: 160px;
+      height: 120px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #00d2ff;
+      box-shadow: 0 4px 20px rgba(0,210,255,0.3);
+      background: #000;
+    }
+    video#webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror kamera */
+    }
+    /* Panel Kontrol & Panduan Gesture */
+    .control-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 290px;
+    }
+    .control-panel h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #00d2ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .status-box {
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      background: rgba(0, 210, 255, 0.15);
+      border-radius: 8px;
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      color: #00d2ff;
+      font-weight: bold;
+      text-align: center;
+    }
+    .gesture-guide {
+      font-size: 0.8rem;
+      color: #ddd;
+      background: rgba(0,0,0,0.4);
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .input-group label {
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Preview Webcam -->
+  <div id="webcam-container">
+    <video id="webcam" autoplay playsinline muted></video>
+  </div>
+
+  <!-- Panel Kontrol -->
+  <div class="control-panel">
+    <h2>Sensor Kamera & Gesture</h2>
+    <div id="status" class="status-box">Menghubungkan Kamera...</div>
+
+    <div class="input-group">
+      <label for="textInput">Ubah Teks Partikel:</label>
+      <input type="text" id="textInput" value="C4CAT" maxlength="12">
+    </div>
+
+    <div class="gesture-guide">
+      <b>🖐️ Panduan Jari Tangan:</b>
+      <span>☝️ <b>1 Jari:</b> Teks</span>
+      <span>✌️ <b>2 Jari:</b> Lingkaran</span>
+      <span>🤟 <b>3 Jari:</b> Hati</span>
+      <span>🖖 <b>4 Jari:</b> Bintang</span>
+      <span>✊ <b>Kepalan:</b> Acak / Bebas</span>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const videoElement = document.getElementById('webcam');
+    const statusBox = document.getElementById('status');
+    const textInput = document.getElementById('textInput');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    let particles = [];
+    let handPos = { x: null, y: null, radius: 120 };
+    let hue = 0;
+    let currentShape = 'text';
+
+    // Inisialisasi Canvas Particle Engine
+    class Particle {
+      constructor(x, y) {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.originX = x;
+        this.originY = y;
+        this.size = 2.5;
+        this.vx = 0;
+        this.vy = 0;
+        this.friction = 0.85;
+        this.ease = 0.1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${hue + (this.originX * 0.1)}, 100%, 60%)`;
+        ctx.fill();
+      }
+
+      update() {
+        // Efek dorongan jari dari sensor kamera
+        if (handPos.x !== null) {
+          let dx = handPos.x - this.x;
+          let dy = handPos.y - this.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < handPos.radius) {
+            let force = (handPos.radius - distance) / handPos.radius;
+            let angle = Math.atan2(dy, dx);
+            this.vx -= Math.cos(angle) * force * 8;
+            this.vy -= Math.sin(angle) * force * 8;
+          }
+        }
+
+        // Kembali ke bentuk asal
+        this.vx += (this.originX - this.x) * this.ease;
+        this.vy += (this.originY - this.y) * this.ease;
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.draw();
+      }
+    }
+
+    function getShapeCoordinates(shape) {
+      const coords = [];
+      const density = 6;
+
+      if (shape === 'text') {
+        const text = textInput.value || "TEXT";
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+
+        let fontSize = Math.min(width / (text.length * 0.8), 150);
+        tempCtx.font = `bold ${fontSize}px sans-serif`;
+        tempCtx.fillStyle = 'white';
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+        tempCtx.fillText(text, width / 2, height / 2);
+
+        const imgData = tempCtx.getImageData(0, 0, width, height).data;
+        for (let y = 0; y < height; y += density) {
+          for (let x = 0; x < width; x += density) {
+            if (imgData[(y * width + x) * 4 + 3] > 128) {
+              coords.push({ x, y });
+            }
+          }
+        }
+      } else if (shape === 'circle') {
+        const radius = Math.min(width, height) * 0.25;
+        for (let i = 0; i < 600; i++) {
+          const angle = (i / 600) * Math.PI * 2;
+          coords.push({
+            x: width / 2 + Math.cos(angle) * radius,
+            y: height / 2 + Math.sin(angle) * radius
+          });
+        }
+      } else if (shape === 'heart') {
+        const scale = Math.min(width, height) / 45;
+        for (let t = 0; t < Math.PI * 2; t += 0.02) {
+          const x = 16 * Math.pow(Math.sin(t), 3);
+          const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+          coords.push({
+            x: width / 2 + x * scale,
+            y: height / 2 + y * scale
+          });
+        }
+      } else if (shape === 'star') {
+        const scale = Math.min(width, height) * 0.25;
+        for (let i = 0; i < 800; i++) {
+          let angle = (i / 800) * Math.PI * 2;
+          let r = scale * (0.5 + 0.5 * Math.sin(5 * angle));
+          coords.push({
+            x: width / 2 + r * Math.cos(angle),
+            y: height / 2 + r * Math.sin(angle)
+          });
+        }
+      } else { // random / kepalan tangan
+        for (let i = 0; i < 500; i++) {
+          coords.push({
+            x: Math.random() * (width - 100) + 50,
+            y: Math.random() * (height - 100) + 50
+          });
+        }
+      }
+      return coords;
+    }
+
+    function updateShape(newShape) {
+      if (currentShape === newShape && newShape !== 'text') return;
+      currentShape = newShape;
+      const coords = getShapeCoordinates(newShape);
+
+      if (particles.length < coords.length) {
+        for (let i = particles.length; i < coords.length; i++) {
+          particles.push(new Particle(coords[i].x, coords[i].y));
+        }
+      } else if (particles.length > coords.length) {
+        particles.splice(coords.length);
+      }
+
+      for (let i = 0; i < coords.length; i++) {
+        particles[i].originX = coords[i].x;
+        particles[i].originY = coords[i].y;
+      }
+    }
+
+    textInput.addEventListener('input', () => {
+      if (currentShape === 'text') updateShape('text');
+    });
+
+    function animate() {
+      ctx.fillStyle = 'rgba(13, 13, 17, 0.25)';
+      ctx.fillRect(0, 0, width, height);
+      hue += 0.8;
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // --- INTEGRASI MEDIAPIPE HANDS (SENSOR KAMERA) ---
+    function countFingers(landmarks) {
+      // Index Ujung Jari: Jempol=4, Telunjuk=8, Tengah=12, Manis=16, Kelingking=20
+      let count = 0;
+      
+      // Telunjuk
+      if (landmarks[8].y < landmarks[6].y) count++;
+      // Jari Tengah
+      if (landmarks[12].y < landmarks[10].y) count++;
+      // Jari Manis
+      if (landmarks[16].y < landmarks[14].y) count++;
+      // Kelingking
+      if (landmarks[20].y < landmarks[18].y) count++;
+
+      return count;
+    }
+
+    function onResults(results) {
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        // Ambil posisi Telunjuk untuk koordinat interaksi (di-mirror agar natural)
+        handPos.x = (1 - landmarks[8].x) * width;
+        handPos.y = landmarks[8].y * height;
+
+        // Hitung Jumlah Jari yang Berdiri
+        const fingers = countFingers(landmarks);
+
+        if (fingers === 1) {
+          statusBox.innerText = "Mode: Teks (1 Jari)";
+          updateShape('text');
+        } else if (fingers === 2) {
+          statusBox.innerText = "Mode: Lingkaran (2 Jari)";
+          updateShape('circle');
+        } else if (fingers === 3) {
+          statusBox.innerText = "Mode: Hati (3 Jari)";
+          updateShape('heart');
+        } else if (fingers === 4) {
+          statusBox.innerText = "Mode: Bintang (4 Jari)";
+          updateShape('star');
+        } else if (fingers === 0) {
+          statusBox.innerText = "Mode: Acak / Kepalan (0 Jari)";
+          updateShape('random');
+        }
+      } else {
+        handPos.x = null;
+        handPos.y = null;
+        statusBox.innerText = "Arahkan Tangan ke Kamera";
+      }
+    }
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.6
+    });
+
+    hands.onResults(onResults);
+
+    // Aktifkan Kamera Webcam
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480
+    });
+
+    camera.start().then(() => {
+      statusBox.innerText = "Kamera Aktif!";
+    }).catch(err => {
+      statusBox.innerText = "Izin Kamera Ditolak!";
+      console.error(err);
+    });
+
+    // Handle Resize Layar
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      updateShape(currentShape);
+    });
+
+    // Jalankan Awal
+    updateShape('text');
+    animate();
+  </script>
+</body>
+</html>
