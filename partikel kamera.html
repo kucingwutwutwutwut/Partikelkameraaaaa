@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Animasi Partikel - Sensor Kamera</title>
+  <title>Animasi Partikel Neon Interaktif</title>
 
-  <!-- Library MediaPipe untuk Gesture Control via Kamera -->
+  <!-- Library MediaPipe Hands untuk Sensor Kamera -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
@@ -16,12 +16,13 @@
       padding: 0;
     }
     body {
-      background-color: #0d0d11;
+      background-color: #050508;
       color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       overflow: hidden;
       height: 100vh;
       width: 100vw;
+      user-select: none;
     }
     canvas#canvas {
       display: block;
@@ -30,111 +31,116 @@
       left: 0;
       z-index: 1;
     }
-    /* Preview Kamera Kecil di Pojok Kanan Atas */
+    /* Frame Kamera Preview */
     #webcam-container {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 15px;
+      right: 15px;
       z-index: 10;
-      width: 160px;
-      height: 120px;
-      border-radius: 12px;
+      width: 100px;
+      height: 130px;
+      border-radius: 16px;
       overflow: hidden;
-      border: 2px solid #00d2ff;
-      box-shadow: 0 4px 20px rgba(0,210,255,0.3);
+      border: 2px solid rgba(0, 210, 255, 0.6);
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
       background: #000;
     }
     video#webcam {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* Mirror kamera */
+      transform: scaleX(-1);
     }
-    /* Panel Kontrol & Panduan Gesture */
+    /* Panel Kontrol Transparan Modern */
     .control-panel {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 15px;
+      left: 15px;
       z-index: 10;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      background: rgba(15, 15, 25, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 14px;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      width: 290px;
+      gap: 10px;
+      width: 220px;
     }
     .control-panel h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 0.95rem;
+      font-weight: 700;
       color: #00d2ff;
       text-transform: uppercase;
       letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
     }
     .status-box {
-      font-size: 0.85rem;
-      padding: 8px 12px;
-      background: rgba(0, 210, 255, 0.15);
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      background: rgba(0, 210, 255, 0.12);
       border-radius: 8px;
-      border: 1px solid rgba(0, 210, 255, 0.3);
+      border: 1px solid rgba(0, 210, 255, 0.25);
       color: #00d2ff;
-      font-weight: bold;
+      font-weight: 600;
       text-align: center;
-    }
-    .gesture-guide {
-      font-size: 0.8rem;
-      color: #ddd;
-      background: rgba(0,0,0,0.4);
-      padding: 10px;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
     }
     .input-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .input-group label {
-      font-size: 0.85rem;
-      color: #ccc;
+      font-size: 0.75rem;
+      color: #aaa;
     }
     input[type="text"] {
       width: 100%;
-      padding: 8px;
+      padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       color: #fff;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       outline: none;
+      transition: all 0.3s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #00d2ff;
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+    }
+    .gesture-guide {
+      font-size: 0.72rem;
+      color: #ddd;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      line-height: 1.3;
     }
   </style>
 </head>
 <body>
 
-  <!-- Preview Webcam -->
   <div id="webcam-container">
     <video id="webcam" autoplay playsinline muted></video>
   </div>
 
-  <!-- Panel Kontrol -->
   <div class="control-panel">
-    <h2>Sensor Kamera & Gesture</h2>
-    <div id="status" class="status-box">Menghubungkan Kamera...</div>
+    <h2>Partikel Sensor</h2>
+    <div id="status" class="status-box">Menghubungkan...</div>
 
     <div class="input-group">
-      <label for="textInput">Ubah Teks Partikel:</label>
+      <label for="textInput">Ketik Teks:</label>
       <input type="text" id="textInput" value="C4CAT" maxlength="12">
     </div>
 
     <div class="gesture-guide">
-      <b>🖐️ Panduan Jari Tangan:</b>
+      <b>🖐️ Kontrol Jari:</b>
       <span>☝️ <b>1 Jari:</b> Teks</span>
       <span>✌️ <b>2 Jari:</b> Lingkaran</span>
       <span>🤟 <b>3 Jari:</b> Hati</span>
@@ -157,32 +163,39 @@
 
     let particles = [];
     let handPos = { x: null, y: null, radius: 120 };
-    let hue = 0;
+    let globalHue = 0;
     let currentShape = 'text';
 
-    // Inisialisasi Canvas Particle Engine
+    // Kelas Partikel Baru dengan Glow Effect
     class Particle {
       constructor(x, y) {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
         this.originX = x;
         this.originY = y;
-        this.size = 2.5;
+        this.size = Math.random() * 1.5 + 1.8;
         this.vx = 0;
         this.vy = 0;
-        this.friction = 0.85;
-        this.ease = 0.1;
+        this.friction = 0.84;
+        this.ease = 0.08;
       }
 
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsl(${hue + (this.originX * 0.1)}, 100%, 60%)`;
+        
+        // Gradasi warna dinamis berdasarkan koordinat
+        const colorHue = (globalHue + (this.originX * 0.15) + (this.originY * 0.05)) % 360;
+        ctx.fillStyle = `hsl(${colorHue}, 100%, 65%)`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = `hsl(${colorHue}, 100%, 50%)`;
+        
         ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow untuk performa
       }
 
       update() {
-        // Efek dorongan jari dari sensor kamera
+        // Interaksi dengan Posisi Tangan / Touch
         if (handPos.x !== null) {
           let dx = handPos.x - this.x;
           let dy = handPos.y - this.y;
@@ -191,12 +204,12 @@
           if (distance < handPos.radius) {
             let force = (handPos.radius - distance) / handPos.radius;
             let angle = Math.atan2(dy, dx);
-            this.vx -= Math.cos(angle) * force * 8;
-            this.vy -= Math.sin(angle) * force * 8;
+            this.vx -= Math.cos(angle) * force * 10;
+            this.vy -= Math.sin(angle) * force * 10;
           }
         }
 
-        // Kembali ke bentuk asal
+        // Animasi Fisika Kembali ke Pola Origin
         this.vx += (this.originX - this.x) * this.ease;
         this.vy += (this.originY - this.y) * this.ease;
         this.vx *= this.friction;
@@ -208,19 +221,20 @@
       }
     }
 
+    // Fungsi Pembentuk Pola Partikel
     function getShapeCoordinates(shape) {
       const coords = [];
       const density = 6;
 
       if (shape === 'text') {
-        const text = textInput.value || "TEXT";
+        const text = textInput.value || "C4CAT";
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = width;
         tempCanvas.height = height;
 
-        let fontSize = Math.min(width / (text.length * 0.8), 150);
-        tempCtx.font = `bold ${fontSize}px sans-serif`;
+        let fontSize = Math.min(width / (text.length * 0.75), 120);
+        tempCtx.font = `bold ${fontSize}px system-ui, sans-serif`;
         tempCtx.fillStyle = 'white';
         tempCtx.textAlign = 'center';
         tempCtx.textBaseline = 'middle';
@@ -235,17 +249,17 @@
           }
         }
       } else if (shape === 'circle') {
-        const radius = Math.min(width, height) * 0.25;
-        for (let i = 0; i < 600; i++) {
-          const angle = (i / 600) * Math.PI * 2;
+        const radius = Math.min(width, height) * 0.24;
+        for (let i = 0; i < 550; i++) {
+          const angle = (i / 550) * Math.PI * 2;
           coords.push({
             x: width / 2 + Math.cos(angle) * radius,
             y: height / 2 + Math.sin(angle) * radius
           });
         }
       } else if (shape === 'heart') {
-        const scale = Math.min(width, height) / 45;
-        for (let t = 0; t < Math.PI * 2; t += 0.02) {
+        const scale = Math.min(width, height) / 48;
+        for (let t = 0; t < Math.PI * 2; t += 0.018) {
           const x = 16 * Math.pow(Math.sin(t), 3);
           const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
           coords.push({
@@ -254,20 +268,20 @@
           });
         }
       } else if (shape === 'star') {
-        const scale = Math.min(width, height) * 0.25;
-        for (let i = 0; i < 800; i++) {
-          let angle = (i / 800) * Math.PI * 2;
+        const scale = Math.min(width, height) * 0.24;
+        for (let i = 0; i < 650; i++) {
+          let angle = (i / 650) * Math.PI * 2;
           let r = scale * (0.5 + 0.5 * Math.sin(5 * angle));
           coords.push({
             x: width / 2 + r * Math.cos(angle),
             y: height / 2 + r * Math.sin(angle)
           });
         }
-      } else { // random / kepalan tangan
-        for (let i = 0; i < 500; i++) {
+      } else { // Random
+        for (let i = 0; i < 450; i++) {
           coords.push({
-            x: Math.random() * (width - 100) + 50,
-            y: Math.random() * (height - 100) + 50
+            x: Math.random() * (width - 60) + 30,
+            y: Math.random() * (height - 60) + 30
           });
         }
       }
@@ -275,7 +289,6 @@
     }
 
     function updateShape(newShape) {
-      if (currentShape === newShape && newShape !== 'text') return;
       currentShape = newShape;
       const coords = getShapeCoordinates(newShape);
 
@@ -297,10 +310,13 @@
       if (currentShape === 'text') updateShape('text');
     });
 
+    // Loop Animasi Utama
     function animate() {
-      ctx.fillStyle = 'rgba(13, 13, 17, 0.25)';
+      // Efek jejak pudar (Trail effect)
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.22)';
       ctx.fillRect(0, 0, width, height);
-      hue += 0.8;
+
+      globalHue += 0.9; // Transisi siklus warna
 
       for (let i = 0; i < particles.length; i++) {
         particles[i].update();
@@ -308,20 +324,13 @@
       requestAnimationFrame(animate);
     }
 
-    // --- INTEGRASI MEDIAPIPE HANDS (SENSOR KAMERA) ---
+    // Deteksi Gestur Jari Tangan
     function countFingers(landmarks) {
-      // Index Ujung Jari: Jempol=4, Telunjuk=8, Tengah=12, Manis=16, Kelingking=20
       let count = 0;
-      
-      // Telunjuk
-      if (landmarks[8].y < landmarks[6].y) count++;
-      // Jari Tengah
-      if (landmarks[12].y < landmarks[10].y) count++;
-      // Jari Manis
-      if (landmarks[16].y < landmarks[14].y) count++;
-      // Kelingking
-      if (landmarks[20].y < landmarks[18].y) count++;
-
+      if (landmarks[8].y < landmarks[6].y) count++;   // Telunjuk
+      if (landmarks[12].y < landmarks[10].y) count++; // Tengah
+      if (landmarks[16].y < landmarks[14].y) count++; // Manis
+      if (landmarks[20].y < landmarks[18].y) count++; // Kelingking
       return count;
     }
 
@@ -329,73 +338,85 @@
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const landmarks = results.multiHandLandmarks[0];
 
-        // Ambil posisi Telunjuk untuk koordinat interaksi (di-mirror agar natural)
+        // Ambil Posisi Telunjuk (Mirroring)
         handPos.x = (1 - landmarks[8].x) * width;
         handPos.y = landmarks[8].y * height;
 
-        // Hitung Jumlah Jari yang Berdiri
         const fingers = countFingers(landmarks);
 
         if (fingers === 1) {
           statusBox.innerText = "Mode: Teks (1 Jari)";
-          updateShape('text');
+          if (currentShape !== 'text') updateShape('text');
         } else if (fingers === 2) {
           statusBox.innerText = "Mode: Lingkaran (2 Jari)";
-          updateShape('circle');
+          if (currentShape !== 'circle') updateShape('circle');
         } else if (fingers === 3) {
           statusBox.innerText = "Mode: Hati (3 Jari)";
-          updateShape('heart');
+          if (currentShape !== 'heart') updateShape('heart');
         } else if (fingers === 4) {
           statusBox.innerText = "Mode: Bintang (4 Jari)";
-          updateShape('star');
+          if (currentShape !== 'star') updateShape('star');
         } else if (fingers === 0) {
-          statusBox.innerText = "Mode: Acak / Kepalan (0 Jari)";
-          updateShape('random');
+          statusBox.innerText = "Mode: Acak (Kepalan)";
+          if (currentShape !== 'random') updateShape('random');
         }
       } else {
         handPos.x = null;
         handPos.y = null;
-        statusBox.innerText = "Arahkan Tangan ke Kamera";
+        statusBox.innerText = "Arahkan Tangan";
       }
     }
 
+    // Interaksi Touch Screen / Touch Fallback saat HP disentuh
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        handPos.x = e.touches[0].clientX;
+        handPos.y = e.touches[0].clientY;
+      }
+    });
+
+    window.addEventListener('touchend', () => {
+      handPos.x = null;
+      handPos.y = null;
+    });
+
+    // Inisialisasi MediaPipe Hands
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
     hands.setOptions({
       maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6
+      modelComplexity: 0, // Sangat cepat & ringan untuk HP
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
     });
 
     hands.onResults(onResults);
 
-    // Aktifkan Kamera Webcam
     const camera = new Camera(videoElement, {
       onFrame: async () => {
         await hands.send({ image: videoElement });
       },
-      width: 640,
-      height: 480
+      width: 360,
+      height: 480,
+      facingMode: 'user'
     });
 
     camera.start().then(() => {
       statusBox.innerText = "Kamera Aktif!";
     }).catch(err => {
-      statusBox.innerText = "Izin Kamera Ditolak!";
+      statusBox.innerText = "Sentuh Layar HP";
       console.error(err);
     });
 
-    // Handle Resize Layar
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
       updateShape(currentShape);
     });
 
-    // Jalankan Awal
+    // Jalankan Aplikasi
     updateShape('text');
     animate();
   </script>
